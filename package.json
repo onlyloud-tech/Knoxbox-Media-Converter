@@ -1,7 +1,7 @@
 {
-  "name": "knoxbox-movie-importer",
-  "version": "0.3.1",
-  "description": "Desktop movie importer and movie-pack builder for KnoxBox Television and VHS",
+  "name": "knoxbox-media-converter",
+  "version": "0.3.2",
+  "description": "Desktop media converter and movie-pack builder for KnoxBox Television and VHS",
   "type": "module",
   "main": "electron/main.cjs",
   "license": "UNLICENSED",
@@ -36,8 +36,8 @@
     "vite": "^7.3.0"
   },
   "build": {
-    "appId": "com.knoxbox.movieimporter",
-    "productName": "KnoxBox Movie Importer",
+    "appId": "com.knoxbox.mediaconverter",
+    "productName": "Knoxbox Media Converter",
     "asar": true,
     "files": [
       "dist/index.cjs",
@@ -55,7 +55,7 @@
     "win": {
       "icon": "build/icon.ico",
       "target": "portable",
-      "artifactName": "KnoxBox-Movie-Importer-${version}.exe"
+      "artifactName": "Knoxbox-Media-Converter-${version}.exe"
     }
   }
 }

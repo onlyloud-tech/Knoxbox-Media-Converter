@@ -9,7 +9,7 @@ const testRoot = path.resolve(".integration-test");
 const modRoot = path.join(testRoot, "KBM_TVVHS");
 const source = path.join(testRoot, "Synthetic Movie.mp4");
 const ffmpeg = process.env.KBM_FFMPEG || "";
-const settingsPath = path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Local"), "KnoxBoxMovieImporter", "settings.json");
+const settingsPath = path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Local"), "KnoxboxMediaConverter", "settings.json");
 const savedSettings = fs.existsSync(settingsPath) ? fs.readFileSync(settingsPath) : null;
 
 async function restoreSettings() {

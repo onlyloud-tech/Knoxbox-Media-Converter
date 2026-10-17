@@ -8,4 +8,4 @@ The portable Windows executable includes an unmodified `ffmpeg.exe` from Gyan Do
 - FFmpeg source: https://github.com/FFmpeg/FFmpeg/commit/d32b387f2b
 - License: GPLv3; see `COPYING.GPLv3` in the release ZIP and the accompanying `FFmpeg-d32b387f2b-source.zip` asset.
 
-The importer runs FFmpeg as a separate executable to convert local media. The bundled binary reports `--enable-gpl --enable-version3 --enable-static` and includes `libx264` and `libvorbis`. Its exact configuration can be inspected with `ffmpeg.exe -buildconf`. The source repository excludes the FFmpeg binary. If replacing the bundled binary, update this notice and provide the corresponding source and license information for that build.
+Knoxbox Media Converter runs FFmpeg as a separate executable to convert local media. The bundled binary reports `--enable-gpl --enable-version3 --enable-static` and includes `libx264` and `libvorbis`. Its exact configuration can be inspected with `ffmpeg.exe -buildconf`. The source repository excludes the FFmpeg binary. If replacing the bundled binary, update this notice and provide the corresponding source and license information for that build.

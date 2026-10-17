@@ -135,7 +135,7 @@ export default function App() {
 
   return <main className="shell">
     <header className="hero">
-      <img className="brand-logo" src="/logo.gif" alt="Movie importer logo" />
+      <img className="brand-logo" src="/logo.gif" alt="Knoxbox Media Converter logo" />
       <p>Prepare personal movies for the KnoxBox television and VHS player.</p>
       <div className="status-row">
         <span className={`status-pill ${status?.modFound ? "ok" : "bad"}`}><HardDrive size={14} /> {status?.modFound ? "TV/VHS mod found" : "Mod path required"}</span>
