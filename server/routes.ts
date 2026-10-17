@@ -17,7 +17,8 @@ type Job = {
   uploadPath: string;
 };
 
-const upload = multer({ dest: path.join(os.tmpdir(), "kbm-movie-uploads"), limits: { fileSize: 25 * 1024 * 1024 * 1024, files: 50 } });
+const maxUploadFiles = 250;
+const upload = multer({ dest: path.join(os.tmpdir(), "kbm-movie-uploads"), limits: { fileSize: 25 * 1024 * 1024 * 1024, files: maxUploadFiles } });
 const packImageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 1024 * 1024, files: 1 },
@@ -88,7 +89,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/jobs", (_request, response) => response.json([...jobs.values()].map(publicJob)));
 
-  app.post("/api/import", upload.array("files", 50), async (request, response) => {
+  app.post("/api/import", upload.array("files", maxUploadFiles), async (request, response) => {
     const files = (request.files || []) as Express.Multer.File[];
     if (!files.length) return response.status(400).json({ error: "No movie files were selected." });
     const { modRoot } = loadSettings();

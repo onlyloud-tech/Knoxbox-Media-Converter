@@ -8,6 +8,7 @@ type Job = { id: string; sourceName: string; title: string; phase: string; progr
 type PendingFile = { file: File; title: string };
 
 const movieExtensions = ["mp4", "mkv", "mov", "avi", "webm", "m4v", "ogv"];
+const uploadBatchSize = 10;
 
 function formatBytes(bytes: number) {
   if (!bytes) return "0 MB";
@@ -96,18 +97,26 @@ export default function App() {
     if (!pending.length) return;
     setIsUploading(true);
     setMessage("");
-    const body = new FormData();
-    for (const item of pending) body.append("files", item.file, item.file.name);
-    body.append("titles", JSON.stringify(pending.map((item) => ({ name: item.file.name, title: item.title }))));
+    const selected = [...pending];
+    let queued = 0;
     try {
-      const response = await fetch("/api/import", { method: "POST", body });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Import could not be queued.");
-      setPending([]);
-      setMessage(`${result.jobs.length} movie${result.jobs.length === 1 ? "" : "s"} added to the encoding queue.`);
+      for (let offset = 0; offset < selected.length; offset += uploadBatchSize) {
+        const batch = selected.slice(offset, offset + uploadBatchSize);
+        const body = new FormData();
+        for (const item of batch) body.append("files", item.file, item.file.name);
+        body.append("titles", JSON.stringify(batch.map((item) => ({ name: item.file.name, title: item.title }))));
+        setMessage(`Uploading ${offset + 1}-${offset + batch.length} of ${selected.length} movies...`);
+        const response = await fetch("/api/import", { method: "POST", body });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Import could not be queued.");
+        queued += result.jobs.length;
+        setPending((current) => current.slice(batch.length));
+      }
+      setMessage(`${queued} movie${queued === 1 ? "" : "s"} added to the encoding queue.`);
       await refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
+      const reason = error instanceof Error ? error.message : String(error);
+      setMessage(queued ? `${queued} movies queued; remaining files were kept. ${reason}` : reason);
     } finally {
       setIsUploading(false);
     }

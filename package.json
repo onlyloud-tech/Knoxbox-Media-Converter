@@ -1,6 +1,6 @@
 {
   "name": "knoxbox-movie-importer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Desktop movie importer and movie-pack builder for KnoxBox Television and VHS",
   "type": "module",
   "main": "electron/main.cjs",
@@ -40,7 +40,8 @@
     "productName": "KnoxBox Movie Importer",
     "asar": true,
     "files": [
-      "dist/**/*",
+      "dist/index.cjs",
+      "dist/public/**/*",
       "electron/**/*",
       "build/icon.ico",
       "package.json"
