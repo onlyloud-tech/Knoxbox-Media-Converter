@@ -1,0 +1,28 @@
+# Dependencies and generated builds
+node_modules/
+dist/
+release/
+*.exe
+*.zip
+
+# Local integration-test state and caches
+.integration-appdata/
+.integration-test/
+.cache/
+*.log
+
+# Bundled third-party tools are managed separately from source.
+vendor/ffmpeg/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
