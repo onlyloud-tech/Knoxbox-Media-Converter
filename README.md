@@ -12,6 +12,8 @@ Turn your own videos into VHS tapes for **KnoxBox Television and VHS** on Projec
 
 **Using a packaged release:** Download the Windows release ZIP from the [GitHub Releases page](https://github.com/onlyloud-tech/Knoxbox-Media-Converter/releases), extract it, and run `Knoxbox-Media-Converter-<version>.exe`. The portable executable includes the app runtime and FFmpeg, so you do not need to install Node.js or rebuild the source. Keep the included `THIRD-PARTY-NOTICES.md` with the executable. Check that the app shows **FFmpeg ready** before converting.
 
+**First launch on Windows:** Windows Defender SmartScreen may show a **"Windows protected your PC"** warning because the executable is not code-signed. This is expected for this release. Choose **More info** and then **Run anyway** to launch it.
+
 **Building from source:** Install [Node.js with npm](https://nodejs.org/en/download), then follow the [source build instructions](#build-from-source) below. The checked-in Vite 7 dependency requires Node.js 20.19+ or 22.12+.
 
 ## Import your first movie
