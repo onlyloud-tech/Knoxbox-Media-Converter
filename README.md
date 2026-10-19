@@ -46,7 +46,7 @@ npm.cmd run start
 
 Open `http://127.0.0.1:48721` in your browser. You can also run `npm.cmd run dev` during development; the same local FFmpeg path is needed for conversions.
 
-To make the portable Windows executable with the included `build\icon.ico`, run:
+To make the portable Windows executable, run:
 
 ```powershell
 npm.cmd run package:win
