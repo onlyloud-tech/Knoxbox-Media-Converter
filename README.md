@@ -63,7 +63,7 @@ To make the portable Windows executable, run:
 npm.cmd run package:win
 ```
 
-The configured output is `dist\Knoxbox-Media-Converter-0.3.2.exe` for this version. Packaging embeds the Electron runtime and copies `vendor\ffmpeg` into the app resources, so users of a correctly packaged executable do not need Node.js or a separate FFmpeg installation. Distribute it in a ZIP with the matching third-party notices and FFmpeg source information.
+The configured output is `dist\Knoxbox-Media-Converter-0.3.3.exe` for this version. Packaging embeds the Electron runtime and copies `vendor\ffmpeg` into the app resources, so users of a correctly packaged executable do not need Node.js or a separate FFmpeg installation. Distribute it in a ZIP with the matching third-party notices and FFmpeg source information.
 
 For the integration test, set the FFmpeg path explicitly:
 

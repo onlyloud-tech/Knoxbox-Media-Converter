@@ -1,6 +1,6 @@
 {
   "name": "knoxbox-media-converter",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Desktop media converter and movie-pack builder for KnoxBox Television and VHS",
   "type": "module",
   "main": "electron/main.cjs",

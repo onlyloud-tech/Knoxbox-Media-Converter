@@ -5,7 +5,7 @@ import fsp from "fs/promises";
 import os from "os";
 import path from "path";
 
-export const APP_VERSION = "0.3.2";
+export const APP_VERSION = "0.3.3";
 export type ImportMode = "local" | "pack";
 export type MoviePack = { modId: string; packId: string; name: string; description: string; root: string };
 export type Settings = { modRoot: string; modsRoot: string; mode: ImportMode; activePackId: string };
