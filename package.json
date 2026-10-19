@@ -1,10 +1,10 @@
 {
   "name": "knoxbox-media-converter",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Desktop media converter and movie-pack builder for KnoxBox Television and VHS",
   "type": "module",
   "main": "electron/main.cjs",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
@@ -44,6 +44,9 @@
       "dist/public/**/*",
       "electron/**/*",
       "build/icon.ico",
+      "LICENSE",
+      "LICENSES/**/*",
+      "THIRD-PARTY-NOTICES.md",
       "package.json"
     ],
     "extraResources": [
