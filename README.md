@@ -28,6 +28,15 @@ Movie-pack mods are created under the selected `Zomboid\mods` folder. They decla
 
 Each imported movie has a **320×180 H.264 Constrained Baseline video** and, when the source has audio, **one mono 32 kHz Vorbis `audio.ogg` file**. Audio is not split into segments.
 
+## Prepare a movie pack for Steam Workshop
+
+1. Finish importing movies into a movie pack and test the pack in game. Close Project Zomboid before staging it.
+2. Select that pack in the converter and click **Stage pack for Workshop**. The converter copies the generated mod to `Zomboid\Workshop\<ModID>\Contents\mods\<ModID>\42` and creates `workshop.txt` and `preview.png` at the Workshop item's root. Your working copy under `Zomboid\mods` stays in place.
+3. If you did not choose pack artwork, the first stage uses Project Zomboid's template preview as a placeholder. Replace `preview.png` with your own image before publishing. The new Workshop item starts with `visibility=private` so you can inspect it first.
+4. Launch Project Zomboid through Steam, open **Workshop → Create and Update Items**, select the staged item, and upload it. On the Steam Workshop page, add **KnoxBox Television and VHS** as a required item; the pack's `mod.info` already declares `require=KBM_TVVHS` for the game.
+
+After changing the working pack, click **Stage pack for Workshop** again, then update the same Workshop item in game. Restaging refreshes the generated mod files while keeping the existing `workshop.txt` and its Workshop ID. The converter prepares the folder but never uploads it to Steam.
+
 ## Build from source
 
 These commands are for PowerShell on Windows. Install [Git](https://git-scm.com/download/win) to clone the repository, or download GitHub's source ZIP and open the extracted folder instead:

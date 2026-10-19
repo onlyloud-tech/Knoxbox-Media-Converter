@@ -30,6 +30,46 @@ function ns(id:string){ return `${id.replace(/[^A-Za-z0-9_]/g,"_")}_Movies`; }
 function metadata(root:string){ return path.join(root,"42","kbm-movie-pack.json"); }
 export function getPack(modId:string,modsRoot=loadSettings().modsRoot):MoviePack|null { if(!/^[A-Za-z][A-Za-z0-9_]{2,63}$/.test(modId)) return null; const root=path.join(modsRoot,modId); try { const d=JSON.parse(fs.readFileSync(metadata(root),"utf8")); if(d.modId!==modId)return null; return {modId,packId:String(d.packId),name:String(d.name),description:String(d.description||""),root}; } catch{return null;} }
 export async function listPacks(modsRoot=loadSettings().modsRoot){ try { const names=await fsp.readdir(modsRoot); return names.map(n=>getPack(n,modsRoot)).filter((p):p is MoviePack=>Boolean(p)).sort((a,b)=>a.name.localeCompare(b.name)); } catch{return [];} }
+export function workshopRoot(modsRoot=loadSettings().modsRoot){ return path.join(path.dirname(modsRoot),"Workshop"); }
+export async function stagePackForWorkshop(modId:string){
+  if(await isPzRunning()) throw new Error("Close Project Zomboid before staging a movie pack.");
+  const s=loadSettings(),pack=getPack(modId,s.modsRoot);
+  if(!pack) throw new Error("Select a generated movie pack first.");
+  const source=path.join(pack.root,"42"),workshop=workshopRoot(s.modsRoot),root=path.join(workshop,pack.modId);
+  const info=await fsp.readFile(path.join(source,"mod.info"),"utf8");
+  if(!info.split(/\r?\n/).includes(`id=${pack.modId}`)) throw new Error("The movie pack mod.info has an unexpected mod ID.");
+  if(fs.existsSync(root)){
+    const existing=path.join(root,"Contents","mods",pack.modId,"42","mod.info");
+    const existingInfo=await fsp.readFile(existing,"utf8").catch(()=>"");
+    if(!existingInfo.split(/\r?\n/).includes(`id=${pack.modId}`)) throw new Error(`A different Workshop item already exists at ${root}.`);
+  }
+  const staged=`${root}.tmp-${randomUUID()}`;
+  try {
+    const destination=path.join(staged,"Contents","mods",pack.modId,"42");
+    await fsp.mkdir(path.dirname(destination),{recursive:true});
+    await fsp.cp(source,destination,{recursive:true});
+    const oldMetadata=path.join(root,"workshop.txt"),oldPreview=path.join(root,"preview.png");
+    if(fs.existsSync(oldMetadata)) await fsp.copyFile(oldMetadata,path.join(staged,"workshop.txt"));
+    else await fsp.writeFile(path.join(staged,"workshop.txt"),[`version=1`,`title=${pack.name.replace(/[\r\n]+/g," ")}`,`description=${(pack.description||"KnoxBox movie pack for Project Zomboid Build 42. Requires KBM_TVVHS.").replace(/[\r\n]+/g," ")}`,`tags=`,`visibility=private`,``].join("\n"));
+    const sourcePreview=path.join(pack.root,"preview.png");
+    const previewFromTemplate=!fs.existsSync(sourcePreview)&&!fs.existsSync(oldPreview);
+    if(fs.existsSync(sourcePreview)) await fsp.copyFile(sourcePreview,path.join(staged,"preview.png"));
+    else if(fs.existsSync(oldPreview)) await fsp.copyFile(oldPreview,path.join(staged,"preview.png"));
+    else {
+      const templatePreview=path.join(workshop,"ModTemplate","preview.png");
+      if(!fs.existsSync(templatePreview)) throw new Error("No pack image was selected and the Project Zomboid Workshop template preview.png is missing. Add a preview.png to your local pack first.");
+      await fsp.copyFile(templatePreview,path.join(staged,"preview.png"));
+    }
+    if(fs.existsSync(root)){
+      const previous=`${root}.previous-${randomUUID()}`;
+      await fsp.rename(root,previous);
+      try { await fsp.rename(staged,root); }
+      catch(error){ await fsp.rename(previous,root); throw error; }
+      await fsp.rm(previous,{recursive:true,force:true});
+    } else await fsp.rename(staged,root);
+    return {root,previewFromTemplate};
+  } finally { await fsp.rm(staged,{recursive:true,force:true}); }
+}
 export async function createPack(input:{modId:string;name:string;description?:string;image?:Buffer}){
   if(await isPzRunning()) throw new Error("Project Zomboid is running. Close it before creating a movie pack.");
   const s=loadSettings(),modId=validModId(input.modId),name=input.name.trim();

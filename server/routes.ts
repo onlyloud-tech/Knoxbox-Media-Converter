@@ -4,7 +4,7 @@ import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
 import fsp from "fs/promises";
-import { APP_VERSION, createPack, findFfmpeg, getPack, installMovie, isPzRunning, isValidModRoot, listPacks, loadCatalog, loadSettings, removeMovie, saveSettings, setImportTarget } from "./kbm";
+import { APP_VERSION, createPack, findFfmpeg, getPack, installMovie, isPzRunning, isValidModRoot, listPacks, loadCatalog, loadSettings, removeMovie, saveSettings, setImportTarget, stagePackForWorkshop, workshopRoot } from "./kbm";
 
 type Job = {
   id: string;
@@ -54,7 +54,7 @@ function queueJob(job: Job) {
 export function registerRoutes(app: Express) {
   app.get("/api/status", async (_request, response) => {
     const settings = loadSettings();
-    response.json({ ...settings, activePack: getPack(settings.activePackId, settings.modsRoot), packs: await listPacks(settings.modsRoot), modFound: isValidModRoot(settings.modRoot), pzRunning: await isPzRunning(), ffmpegFound: Boolean(findFfmpeg()), version: APP_VERSION });
+    response.json({ ...settings, workshopRoot: workshopRoot(settings.modsRoot), activePack: getPack(settings.activePackId, settings.modsRoot), packs: await listPacks(settings.modsRoot), modFound: isValidModRoot(settings.modRoot), pzRunning: await isPzRunning(), ffmpegFound: Boolean(findFfmpeg()), version: APP_VERSION });
   });
 
   app.put("/api/settings", async (request, response) => {
@@ -68,6 +68,15 @@ export function registerRoutes(app: Express) {
   app.post("/api/packs", packImageUpload.single("image"), async (request, response) => {
     try {
       response.status(201).json(await createPack({ modId: String(request.body?.modId || ""), name: String(request.body?.name || ""), description: String(request.body?.description || ""), image: request.file?.buffer }));
+    } catch (error) {
+      response.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.post("/api/packs/:modId/stage-workshop", async (request, response) => {
+    try {
+      if([...jobs.values()].some(job=>job.status==="queued"||job.status==="running")) throw new Error("Wait for all movie imports to finish before staging this pack.");
+      response.json(await stagePackForWorkshop(request.params.modId));
     } catch (error) {
       response.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }

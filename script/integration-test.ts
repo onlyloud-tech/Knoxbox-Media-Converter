@@ -3,7 +3,7 @@ import { spawnSync } from "child_process";
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import { createPack, generateDefinitions, installMovie, loadCatalog, removeMovie, saveSettings, setImportTarget } from "../server/kbm";
+import { createPack, generateDefinitions, installMovie, loadCatalog, removeMovie, saveSettings, setImportTarget, stagePackForWorkshop } from "../server/kbm";
 
 const testRoot = path.resolve(".integration-test");
 const modRoot = path.join(testRoot, "KBM_TVVHS");
@@ -34,7 +34,7 @@ async function main() {
   ], { encoding: "utf8", windowsHide: true });
   assert.equal(generated.status, 0, generated.stderr);
 
-  await saveSettings(modRoot, testRoot);
+  await saveSettings(modRoot, path.join(testRoot, "mods"));
   await setImportTarget("local");
   const phases: string[] = [];
   const entry = await installMovie(source, "Synthetic Movie.mp4", "Synthetic Movie", (phase) => phases.push(phase));
@@ -96,6 +96,19 @@ async function main() {
   assert(modInfo.includes("poster=poster.png"));
   assert(fs.existsSync(path.join(pack.root, "42/poster.png")));
   assert(fs.existsSync(path.join(pack.root, "preview.png")));
+  const staged = await stagePackForWorkshop(pack.modId);
+  assert.equal(staged.root, path.join(testRoot, "Workshop", pack.modId));
+  assert.equal(staged.previewFromTemplate, false);
+  assert(fs.existsSync(path.join(staged.root, "preview.png")));
+  assert(fs.existsSync(path.join(staged.root, "Contents/mods", pack.modId, "42/media/video/KBM_TestMovies_Movies", `${packEntry.id}.mp4`)));
+  const workshopTxt = path.join(staged.root, "workshop.txt");
+  assert((await fsp.readFile(workshopTxt, "utf8")).includes("visibility=private"));
+  await fsp.appendFile(workshopTxt, "id=123456789\n");
+  await removeMovie(packEntry.id);
+  await stagePackForWorkshop(pack.modId);
+  assert((await fsp.readFile(workshopTxt, "utf8")).includes("id=123456789"));
+  assert(!fs.existsSync(path.join(staged.root, "Contents/mods", pack.modId, "42/media/video/KBM_TestMovies_Movies", `${packEntry.id}.mp4`)));
+  assert(fs.existsSync(path.join(pack.root, "42/mod.info")));
   await setImportTarget("local");
   await fsp.rm(testRoot, { recursive: true, force: true });
   await restoreSettings();

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Clapperboard, FolderCog, HardDrive, LoaderCircle, Play, RefreshCw, Settings, Trash2, UploadCloud, X } from "lucide-react";
 
 type MoviePack = { modId: string; packId: string; name: string; description: string; root: string };
-type Status = { modRoot: string; modsRoot: string; mode: "local" | "pack"; activePackId: string; activePack: MoviePack | null; packs: MoviePack[]; modFound: boolean; pzRunning: boolean; ffmpegFound: boolean; version: string };
+type Status = { modRoot: string; modsRoot: string; workshopRoot: string; mode: "local" | "pack"; activePackId: string; activePack: MoviePack | null; packs: MoviePack[]; modFound: boolean; pzRunning: boolean; ffmpegFound: boolean; version: string };
 type LibraryEntry = { id: string; title: string; sourceName: string; createdAt: string; videoBytes: number; audioBytes: number; audioLayout?: "single" | "chunks"; audioChunks: number; duration: number };
 type Job = { id: string; sourceName: string; title: string; phase: string; progress: number; status: "queued" | "running" | "complete" | "failed"; error?: string };
 type PendingFile = { file: File; title: string };
@@ -34,6 +34,7 @@ export default function App() {
   const [packImage, setPackImage] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isStaging, setIsStaging] = useState(false);
   const [message, setMessage] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -91,6 +92,22 @@ export default function App() {
     if (!response.ok) return setMessage(result.error || "Unable to create the movie pack.");
     setMessage(`Created ${result.name}. New imports will be added to that mod.`);
     await refresh();
+  }
+
+  async function stageMoviePack() {
+    if (!status?.activePack) return;
+    setIsStaging(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/packs/${encodeURIComponent(status.activePack.modId)}/stage-workshop`, { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) return setMessage(result.error || "Unable to stage the movie pack.");
+      setMessage(`Workshop copy ready: ${result.root}.${result.previewFromTemplate ? " Replace the template preview.png with your own artwork before publishing." : ""} Open Project Zomboid's Workshop menu to upload it.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsStaging(false);
+    }
   }
 
   async function importMovies() {
@@ -192,6 +209,12 @@ export default function App() {
         <label>Pack image (PNG, optional)<span className="file-picker"><input type="file" accept="image/png,.png" onChange={(event) => setPackImage(event.target.files?.[0] || null)} /><strong>{packImage ? packImage.name : "Choose 256x256 PNG artwork"}</strong></span><small>Use exactly 256x256 pixels and keep it under 1 MB. The importer uses it as the in-game poster and keeps a preview.png copy for Workshop packaging.</small></label>
         <button className="quiet-button full" disabled={Boolean(status?.pzRunning || activeJobs.length)} onClick={createMoviePack}>Create pack and select it</button>
       </div>
+      {status?.mode === "pack" && status.activePack && <div className="pack-builder">
+        <h3>Publish a movie pack</h3>
+        <p>After importing and testing your movies, make a Workshop-ready copy of this pack. This does not upload it to Steam.</p>
+        <button className="quiet-button full" disabled={Boolean(status.pzRunning || activeJobs.length || isStaging)} onClick={stageMoviePack}>{isStaging ? "Preparing Workshop copy..." : "Stage pack for Workshop"}</button>
+        <small>Location: {status.workshopRoot}\{status.activePack.modId}. Repeat after editing the local pack to refresh its Workshop copy.</small>
+      </div>}
     </section>
 
     {(message || jobs.length > 0) && <section className="panel queue-panel">
