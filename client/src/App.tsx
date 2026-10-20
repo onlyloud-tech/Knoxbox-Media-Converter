@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Clapperboard, FolderCog, HardDrive, LoaderCircle, Play, RefreshCw, Settings, Trash2, UploadCloud, X } from "lucide-react";
 
 type MoviePack = { modId: string; packId: string; name: string; description: string; root: string };
-type Status = { modRoot: string; modsRoot: string; workshopRoot: string; mode: "local" | "pack"; activePackId: string; activePack: MoviePack | null; packs: MoviePack[]; modFound: boolean; pzRunning: boolean; ffmpegFound: boolean; version: string };
+type Status = { modRoot: string; modsRoot: string; workshopRoot: string; mode: "local" | "pack"; activePackId: string; activePack: MoviePack | null; packs: MoviePack[]; modFound: boolean; steamMod: boolean; pzRunning: boolean; ffmpegFound: boolean; version: string };
 type LibraryEntry = { id: string; title: string; sourceName: string; createdAt: string; videoBytes: number; audioBytes: number; audioLayout?: "single" | "chunks"; audioChunks: number; duration: number };
 type Job = { id: string; sourceName: string; title: string; phase: string; progress: number; status: "queued" | "running" | "complete" | "failed"; error?: string };
 type PendingFile = { file: File; title: string };
@@ -148,7 +148,7 @@ export default function App() {
     await refresh();
   }
 
-  const ready = Boolean(status?.modFound && status.ffmpegFound && !status.pzRunning && activeJobs.length === 0);
+  const ready = Boolean(status?.modFound && status.ffmpegFound && !status.pzRunning && activeJobs.length === 0 && (status.mode === "pack" ? status.activePack : !status.steamMod));
 
   return <main className="shell">
     <header className="hero">
@@ -178,11 +178,12 @@ export default function App() {
 
       <article className="panel settings-panel">
         <div className="panel-heading"><div><span className="step">02</span><h2>Installation</h2></div><Settings size={18} /></div>
-        <label>KBM_TVVHS folder</label>
+        <label>KBM_TVVHS folder (local or Steam Workshop installation)</label>
         <div className="path-row"><FolderCog size={18} /><input value={modRoot} onChange={(event) => setModRoot(event.target.value)} /></div>
         <label className="spaced-label">Project Zomboid mods folder</label>
         <div className="path-row"><FolderCog size={18} /><input value={modsRoot} onChange={(event) => setModsRoot(event.target.value)} /></div>
         <button className="quiet-button full" onClick={saveSettings}>Save and validate path</button>
+        {status?.steamMod && <p className="restart-note">Steam Workshop installation detected. Create a movie-pack mod below; your movies will be saved in your Zomboid mods folder so Steam updates cannot replace them.</p>}
         <dl className="spec-list">
           <div><dt>Video</dt><dd>320 x 180 H.264 Baseline</dd></div><div><dt>Frame order</dt><dd>B-frames disabled</dd></div><div><dt>Audio</dt><dd>Compact mono OGG, 32 kHz</dd></div><div><dt>Playback</dt><dd>Existing KBM television UI</dd></div>
         </dl>
@@ -193,7 +194,7 @@ export default function App() {
     <section className="panel target-panel">
       <div className="panel-heading"><div><span className="step">03</span><h2>Import destination</h2></div><span className="count">{status?.mode === "pack" ? status.activePack?.name : "Local library"}</span></div>
       <div className="target-options">
-        <button className={`target-option ${status?.mode === "local" ? "selected" : ""}`} disabled={activeJobs.length > 0} onClick={() => chooseTarget("local")}><strong>Personal local library</strong><span>Add movies directly to your KBM_TVVHS installation for your own use.</span></button>
+        <button className={`target-option ${status?.mode === "local" ? "selected" : ""}`} disabled={activeJobs.length > 0 || Boolean(status?.steamMod)} onClick={() => chooseTarget("local")}><strong>Personal local library</strong><span>Available for a local KBM_TVVHS installation. Steam subscribers should create a separate movie pack.</span></button>
         <div className="pack-option">
           <label>Existing movie pack</label>
           <select value={status?.activePackId || ""} disabled={!status?.packs.length || activeJobs.length > 0} onChange={(event) => event.target.value && chooseTarget("pack", event.target.value)}>

@@ -6,7 +6,7 @@ Turn your own videos into VHS tapes for **KnoxBox Television and VHS** on Projec
 
 ## What you need
 
-- Project Zomboid Build 42 with **KnoxBox Media Framework** (`KBM_Core`) and **KnoxBox Television and VHS** (`KBM_TVVHS`) installed. The converter needs the `KBM_TVVHS` mod folder even when you are creating a separate movie pack.
+- Project Zomboid Build 42 with **KnoxBox Media Framework** (`KBM_Core`) and **KnoxBox Television and VHS** (`KBM_TVVHS`) installed, either locally or through Steam Workshop. The converter needs to find the `KBM_TVVHS` folder even when you create a separate movie pack.
 - Windows and a working FFmpeg executable. The Windows release package includes FFmpeg; a source checkout does not.
 - Enough free disk space for the original video during conversion and the converted video and audio afterward.
 
@@ -19,8 +19,8 @@ Turn your own videos into VHS tapes for **KnoxBox Television and VHS** on Projec
 ## Import your first movie
 
 1. Close Project Zomboid. The converter blocks imports while the game is running so it can change mod files safely.
-2. Launch Knoxbox Media Converter and set the **TV/VHS mod folder** to your installed `KBM_TVVHS` folder, commonly `C:\Users\<you>\Zomboid\mods\KBM_TVVHS`. Set the **Zomboid mods folder** to its parent `mods` folder, then save the paths.
-3. Choose **Personal local library** to add tapes to your own `KBM_TVVHS` installation, or create/select a **Movie-pack mod** to keep a collection in its own mod.
+2. Launch Knoxbox Media Converter. It looks for a local `Zomboid\mods\KBM_TVVHS` installation first, then for the subscribed Steam Workshop item. If needed, set **TV/VHS mod folder** to the folder containing `KBM_TVVHS\42\mod.info`, for example `C:\Program Files (x86)\Steam\steamapps\workshop\content\108600\3823030163\mods\KBM_TVVHS`. Keep **Project Zomboid mods folder** set to `C:\Users\<you>\Zomboid\mods`, then save the paths.
+3. If Movies & TV came from Steam Workshop, create a **Movie-pack mod** for your personal tapes. The converter stores it in `Zomboid\mods`, where Steam updates cannot replace it. **Personal local library** is available only when `KBM_TVVHS` is installed locally.
 4. Drop in one or more MP4, MKV, MOV, AVI, WebM, M4V, or OGV videos. Edit the suggested tape titles if you like, then click **Import** and wait for each job to complete. Large selections are sent to the local encoder in groups of 10; you can queue more than 50 videos at once.
 5. Start Project Zomboid again. If you created a movie pack, enable that generated mod alongside `KBM_TVVHS` and `KBM_Core`.
 
@@ -63,7 +63,7 @@ To make the portable Windows executable, run:
 npm.cmd run package:win
 ```
 
-The configured output is `dist\Knoxbox-Media-Converter-0.3.4.exe` for this version. Packaging embeds the Electron runtime, FFmpeg, this license, and third-party notices, so users of a correctly packaged executable do not need Node.js or a separate FFmpeg installation. Official release ZIPs also include the license texts and FFmpeg source information.
+The configured output is `dist\Knoxbox-Media-Converter-0.3.5.exe` for this version. Packaging embeds the Electron runtime, FFmpeg, this license, and third-party notices, so users of a correctly packaged executable do not need Node.js or a separate FFmpeg installation. Official release ZIPs also include the license texts and FFmpeg source information.
 
 For the integration test, set the FFmpeg path explicitly:
 

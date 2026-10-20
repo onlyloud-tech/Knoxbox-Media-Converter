@@ -5,7 +5,7 @@ import fsp from "fs/promises";
 import os from "os";
 import path from "path";
 
-export const APP_VERSION = "0.3.4";
+export const APP_VERSION = "0.3.5";
 export type ImportMode = "local" | "pack";
 export type MoviePack = { modId: string; packId: string; name: string; description: string; root: string };
 export type Settings = { modRoot: string; modsRoot: string; mode: ImportMode; activePackId: string };
@@ -13,17 +13,48 @@ export type MovieEntry = { id:string; sha256:string; title:string; sourceName:st
 type Progress = (phase:string, percent:number) => void;
 type Target = { kind:ImportMode; root:string; state:string; videoDir:string; audioDir:string; videoPrefix:string; soundPath:string; module:string; itemPrefix:string; itemTypePrefix:string; recPrefix:string; soundPrefix:string; catalogLua:string; items:string; sounds:string; recorded:string; pack?:MoviePack };
 
-const appDataDirectory = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+const appDataDirectory = process.env.KBM_CONVERTER_DATA_DIR || process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
 const settingsDirectory = path.join(appDataDirectory, "KnoxboxMediaConverter");
 const settingsPath = path.join(settingsDirectory, "settings.json");
-export function defaultModRoot(){ return path.join(os.homedir(), "Zomboid", "mods", "KBM_TVVHS"); }
+const WORKSHOP_ITEM_ID = "3823030163";
+function steamLibraries():string[]{
+  if(process.platform!=="win32") return [];
+  const roots=[process.env["ProgramFiles(x86)"],process.env.ProgramFiles,process.env.LOCALAPPDATA]
+    .filter((value):value is string=>Boolean(value)).map(value=>path.join(value,"Steam"));
+  const libraries=new Set<string>();
+  for(const root of roots){
+    if(!fs.existsSync(root)) continue;
+    libraries.add(root);
+    try {
+      const vdf=fs.readFileSync(path.join(root,"steamapps","libraryfolders.vdf"),"utf8");
+      for(const match of vdf.matchAll(/"path"\s+"([^"]+)"/g)){
+        libraries.add(match[1].replace(/\\\\/g,"\\"));
+      }
+    } catch { /* Steam may use only its default library. */ }
+  }
+  return [...libraries];
+}
+export function findWorkshopModRoot():string{
+  for(const library of steamLibraries()){
+    const mod=path.join(library,"steamapps","workshop","content","108600",WORKSHOP_ITEM_ID,"mods","KBM_TVVHS");
+    if(isValidModRoot(mod)) return mod;
+  }
+  return "";
+}
+export function isWorkshopModRoot(root:string):boolean{
+  return /[\\/]steamapps[\\/]workshop[\\/]content[\\/]108600[\\/]\d+[\\/]mods[\\/]KBM_TVVHS$/i.test(path.resolve(root));
+}
+export function defaultModRoot(){
+  const local=path.join(defaultModsRoot(),"KBM_TVVHS");
+  return isValidModRoot(local)?local:findWorkshopModRoot()||local;
+}
 export function defaultModsRoot(){ return path.join(os.homedir(), "Zomboid", "mods"); }
-export function loadSettings():Settings { try { const d=JSON.parse(fs.readFileSync(settingsPath,"utf8")); let modRoot=path.resolve(String(d.modRoot||defaultModRoot())); if(path.basename(modRoot).toLowerCase()==="kbm_gameboy"){const migrated=path.join(path.dirname(modRoot),"KBM_TVVHS");if(isValidModRoot(migrated))modRoot=migrated;} return { modRoot, modsRoot:path.resolve(String(d.modsRoot||path.dirname(modRoot))), mode:d.mode==="pack"?"pack":"local", activePackId:String(d.activePackId||"") }; } catch { return {modRoot:defaultModRoot(),modsRoot:defaultModsRoot(),mode:"local",activePackId:""}; } }
+export function loadSettings():Settings { try { const d=JSON.parse(fs.readFileSync(settingsPath,"utf8")); let modRoot=path.resolve(String(d.modRoot||defaultModRoot())); if(path.basename(modRoot).toLowerCase()==="kbm_gameboy"){const migrated=path.join(path.dirname(modRoot),"KBM_TVVHS");if(isValidModRoot(migrated))modRoot=migrated;} if(!isValidModRoot(modRoot))modRoot=defaultModRoot(); return { modRoot, modsRoot:path.resolve(String(d.modsRoot||defaultModsRoot())), mode:d.mode==="pack"?"pack":"local", activePackId:String(d.activePackId||"") }; } catch { return {modRoot:defaultModRoot(),modsRoot:defaultModsRoot(),mode:"local",activePackId:""}; } }
 async function writeAtomic(target:string, contents:string|Buffer){ await fsp.mkdir(path.dirname(target),{recursive:true}); const temp=`${target}.tmp-${process.pid}-${randomUUID()}`; await fsp.writeFile(temp,contents); await fsp.rename(temp,target); }
 async function persist(s:Settings){ await fsp.mkdir(settingsDirectory,{recursive:true}); await writeAtomic(settingsPath,JSON.stringify(s,null,2)); return s; }
 export function isValidModRoot(root:string){ return fs.existsSync(path.join(root,"common/media/lua/client/KBMGB/Movie/MovieRegistry.lua")); }
-export async function saveSettings(modRoot:string,modsRoot?:string){ const old=loadSettings(); const core=path.resolve(modRoot.trim()); if(!isValidModRoot(core)) throw new Error("That folder is not a KBM_TVVHS installation."); const mods=path.resolve(String(modsRoot||old.modsRoot||path.dirname(core)).trim()); await fsp.mkdir(mods,{recursive:true}); return persist({...old,modRoot:core,modsRoot:mods}); }
-export async function setImportTarget(mode:ImportMode,activePackId=""){ const s=loadSettings(); if(mode==="pack"&&!getPack(activePackId,s.modsRoot)) throw new Error("Select or create a valid movie pack first."); return persist({...s,mode,activePackId:mode==="pack"?activePackId:""}); }
+export async function saveSettings(modRoot:string,modsRoot?:string){ const old=loadSettings(); const core=path.resolve(modRoot.trim()); if(!isValidModRoot(core)) throw new Error("That folder is not a KBM_TVVHS installation."); const mods=path.resolve(String(modsRoot||old.modsRoot||defaultModsRoot()).trim()); await fsp.mkdir(mods,{recursive:true}); return persist({...old,modRoot:core,modsRoot:mods}); }
+export async function setImportTarget(mode:ImportMode,activePackId=""){ const s=loadSettings(); if(mode==="local"&&isWorkshopModRoot(s.modRoot)) throw new Error("Steam Workshop installations are updated by Steam. Create a separate movie pack for your personal movies."); if(mode==="pack"&&!getPack(activePackId,s.modsRoot)) throw new Error("Select or create a valid movie pack first."); return persist({...s,mode,activePackId:mode==="pack"?activePackId:""}); }
 
 function validModId(v:string){ const id=v.trim(); if(!/^[A-Za-z][A-Za-z0-9_]{2,63}$/.test(id)) throw new Error("Pack ID must start with a letter and contain only letters, numbers, and underscores (3-64 characters)."); if(["KBM_Core","KBM_GameBoy","KBM_Consoles","KBM_TVVHS","KBM_PublicDomainMovies"].includes(id)) throw new Error("That pack ID is reserved."); return id; }
 function ns(id:string){ return `${id.replace(/[^A-Za-z0-9_]/g,"_")}_Movies`; }
@@ -99,7 +130,7 @@ function script(v:string){return v.replace(/,/g," -").replace(/[\r\n]+/g," ").tr
 
 function localTarget(root:string):Target{return{kind:"local",root,state:"common/media/video/user_movies/catalog.json",videoDir:"common/media/video/user_movies",audioDir:"common/media/sound/KBM/UserMovies",videoPrefix:"user_movies",soundPath:"media/sound/KBM/UserMovies",module:"KBM",itemPrefix:"UserMovie_",itemTypePrefix:"KBM.UserMovie_",recPrefix:"KBM_GB_UserMovie_",soundPrefix:"UserMovie_",catalogLua:"common/media/lua/shared/KBMGB/Movie/UserMovieCatalog.lua",items:"common/media/scripts/KBMGB_UserMovie_Items.txt",sounds:"common/media/scripts/KBMGB_UserMovie_Sounds.txt",recorded:"common/media/lua/shared/RecordedMedia/KBMGB_UserMovieRecordedMedia.lua"};}
 function packTarget(pack:MoviePack):Target{const n=ns(pack.modId),m="42/media";return{kind:"pack",root:pack.root,state:"42/kbm-movie-catalog.json",videoDir:`${m}/video/${n}`,audioDir:`${m}/sound/KBM/${n}`,videoPrefix:n,soundPath:`media/sound/KBM/${n}`,module:n,itemPrefix:"VHS_",itemTypePrefix:`${n}.VHS_`,recPrefix:`${n}_Recorded_`,soundPrefix:`${n}_`,catalogLua:`${m}/lua/shared/${n}/Catalog.lua`,items:`${m}/scripts/${n}_Items.txt`,sounds:`${m}/scripts/${n}_Sounds.txt`,recorded:`${m}/lua/shared/RecordedMedia/${n}RecordedMedia.lua`,pack};}
-function currentTarget(){const s=loadSettings();if(s.mode==="pack"){const p=getPack(s.activePackId,s.modsRoot);if(!p)throw new Error("The selected movie pack no longer exists. Select or create a pack.");return packTarget(p);}if(!isValidModRoot(s.modRoot))throw new Error("The configured KBM_TVVHS folder is not valid.");return localTarget(s.modRoot);}
+function currentTarget(){const s=loadSettings();if(s.mode==="pack"){const p=getPack(s.activePackId,s.modsRoot);if(!p)throw new Error("The selected movie pack no longer exists. Select or create a pack.");return packTarget(p);}if(!isValidModRoot(s.modRoot))throw new Error("The configured KBM_TVVHS folder is not valid.");if(isWorkshopModRoot(s.modRoot))throw new Error("Create a separate movie pack for personal movies; Steam may replace changes inside a subscribed mod.");return localTarget(s.modRoot);}
 async function loadCatalogFor(t:Target):Promise<MovieEntry[]>{try{const d=JSON.parse(await fsp.readFile(path.join(t.root,t.state),"utf8"));return Array.isArray(d.entries)?d.entries:[];}catch{return[];}}
 async function saveCatalogFor(t:Target,entries:MovieEntry[]){await writeAtomic(path.join(t.root,t.state),JSON.stringify({version:1,...(t.pack?{pack:{modId:t.pack.modId,packId:t.pack.packId,name:t.pack.name,description:t.pack.description}}:{}),entries},null,2));}
 export async function loadCatalog(){return loadCatalogFor(currentTarget());}

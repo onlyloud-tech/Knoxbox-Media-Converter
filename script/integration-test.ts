@@ -3,13 +3,13 @@ import { spawnSync } from "child_process";
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import { createPack, generateDefinitions, installMovie, loadCatalog, removeMovie, saveSettings, setImportTarget, stagePackForWorkshop } from "../server/kbm";
+import { createPack, generateDefinitions, installMovie, isWorkshopModRoot, loadCatalog, removeMovie, saveSettings, setImportTarget, stagePackForWorkshop } from "../server/kbm";
 
 const testRoot = path.resolve(".integration-test");
 const modRoot = path.join(testRoot, "KBM_TVVHS");
 const source = path.join(testRoot, "Synthetic Movie.mp4");
 const ffmpeg = process.env.KBM_FFMPEG || "";
-const settingsPath = path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Local"), "KnoxboxMediaConverter", "settings.json");
+const settingsPath = path.join(process.env.KBM_CONVERTER_DATA_DIR || process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Local"), "KnoxboxMediaConverter", "settings.json");
 const savedSettings = fs.existsSync(settingsPath) ? fs.readFileSync(settingsPath) : null;
 
 async function restoreSettings() {
@@ -73,6 +73,13 @@ async function main() {
   assert.equal((await loadCatalog()).length, 0);
   await generateDefinitions(modRoot, []);
 
+  const steamMod = path.join(testRoot, "steamapps", "workshop", "content", "108600", "3823030163", "mods", "KBM_TVVHS");
+  await fsp.mkdir(path.join(steamMod, "common/media/lua/client/KBMGB/Movie"), { recursive: true });
+  await fsp.writeFile(path.join(steamMod, "common/media/lua/client/KBMGB/Movie/MovieRegistry.lua"), "return {}\n");
+  assert(isWorkshopModRoot(steamMod));
+  await saveSettings(steamMod, path.join(testRoot, "mods"));
+  await assert.rejects(setImportTarget("local"), /separate movie pack/);
+
   const regenerated = spawnSync(ffmpeg, [
     "-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=2",
     "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-t", "31", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", source,
@@ -109,6 +116,7 @@ async function main() {
   assert((await fsp.readFile(workshopTxt, "utf8")).includes("id=123456789"));
   assert(!fs.existsSync(path.join(staged.root, "Contents/mods", pack.modId, "42/media/video/KBM_TestMovies_Movies", `${packEntry.id}.mp4`)));
   assert(fs.existsSync(path.join(pack.root, "42/mod.info")));
+  await saveSettings(modRoot, path.join(testRoot, "mods"));
   await setImportTarget("local");
   await fsp.rm(testRoot, { recursive: true, force: true });
   await restoreSettings();

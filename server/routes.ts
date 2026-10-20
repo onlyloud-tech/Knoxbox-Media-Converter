@@ -4,7 +4,7 @@ import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
 import fsp from "fs/promises";
-import { APP_VERSION, createPack, findFfmpeg, getPack, installMovie, isPzRunning, isValidModRoot, listPacks, loadCatalog, loadSettings, removeMovie, saveSettings, setImportTarget, stagePackForWorkshop, workshopRoot } from "./kbm";
+import { APP_VERSION, createPack, findFfmpeg, getPack, installMovie, isPzRunning, isValidModRoot, isWorkshopModRoot, listPacks, loadCatalog, loadSettings, removeMovie, saveSettings, setImportTarget, stagePackForWorkshop, workshopRoot } from "./kbm";
 
 type Job = {
   id: string;
@@ -54,7 +54,7 @@ function queueJob(job: Job) {
 export function registerRoutes(app: Express) {
   app.get("/api/status", async (_request, response) => {
     const settings = loadSettings();
-    response.json({ ...settings, workshopRoot: workshopRoot(settings.modsRoot), activePack: getPack(settings.activePackId, settings.modsRoot), packs: await listPacks(settings.modsRoot), modFound: isValidModRoot(settings.modRoot), pzRunning: await isPzRunning(), ffmpegFound: Boolean(findFfmpeg()), version: APP_VERSION });
+    response.json({ ...settings, workshopRoot: workshopRoot(settings.modsRoot), activePack: getPack(settings.activePackId, settings.modsRoot), packs: await listPacks(settings.modsRoot), modFound: isValidModRoot(settings.modRoot), steamMod: isWorkshopModRoot(settings.modRoot), pzRunning: await isPzRunning(), ffmpegFound: Boolean(findFfmpeg()), version: APP_VERSION });
   });
 
   app.put("/api/settings", async (request, response) => {
@@ -93,7 +93,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/library", async (_request, response) => {
     const { modRoot } = loadSettings();
-    response.json(isValidModRoot(modRoot) ? await loadCatalog() : []);
+    response.json(isValidModRoot(modRoot) && !(loadSettings().mode === "local" && isWorkshopModRoot(modRoot)) ? await loadCatalog() : []);
   });
 
   app.get("/api/jobs", (_request, response) => response.json([...jobs.values()].map(publicJob)));
