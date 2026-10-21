@@ -4,6 +4,7 @@ The portable Windows executable includes an unmodified `ffmpeg.exe` from Gyan Do
 
 - Build provider: https://www.gyan.dev/ffmpeg/builds/
 - Build release: https://github.com/GyanD/codexffmpeg/releases/tag/9.0
+- Bundled `ffmpeg.exe` SHA-256: `05F4251BCE9293C2AB492CB17CA7724A0FFD0D06C881BA2EE83B82A89C2FC740`
 - FFmpeg revision identified by that release: `d32b387f2b`
 - FFmpeg source: https://github.com/FFmpeg/FFmpeg/commit/d32b387f2b
 - License: GPLv3; see `LICENSES/FFmpeg/COPYING.GPLv3` in this repository, `COPYING.GPLv3` in the release ZIP, and the accompanying `FFmpeg-d32b387f2b-source.zip` asset.

@@ -51,6 +51,10 @@ async function main() {
   assert(phases.includes("Encoding video"));
   assert(phases.includes("Encoding audio"));
   assert.equal(phases.at(-1), "Installed - restart Project Zomboid");
+  const playlist = path.join(testRoot, "Disguised Playlist.mp4");
+  await fsp.writeFile(playlist, "ffconcat version 1.0\nfile 'Synthetic Movie.mp4'\n");
+  await assert.rejects(installMovie(playlist, "Disguised Playlist.mp4", "Playlist", () => undefined), /whitelist|No video stream|Invalid data/i);
+  await fsp.rm(playlist, { force: true });
 
   const inspection = spawnSync(ffmpeg, ["-hide_banner", "-i", path.join(modRoot, "common/media/video", entry.video)], { encoding: "utf8", windowsHide: true });
   const probeText = `${inspection.stdout}\n${inspection.stderr}`;
@@ -89,6 +93,11 @@ async function main() {
   const generatedImage = spawnSync(ffmpeg, ["-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=black:s=256x256", "-frames:v", "1", imagePath], { encoding: "utf8", windowsHide: true });
   assert.equal(generatedImage.status, 0, generatedImage.stderr);
   const image = await fsp.readFile(imagePath);
+  const malformedImage = Buffer.alloc(24);
+  Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]).copy(malformedImage);
+  malformedImage.writeUInt32BE(256,16);
+  malformedImage.writeUInt32BE(256,20);
+  await assert.rejects(createPack({ modId: "KBM_BadImage", name: "Bad image", image: malformedImage }), /fully decoded/);
   const pack = await createPack({ modId: "KBM_TestMovies", name: "Test Movies", description: "Generated integration-test pack", image });
   const packEntry = await installMovie(source, "Synthetic Movie.mp4", "Synthetic Pack Movie", () => undefined);
   assert.equal((await loadCatalog()).length, 1);
@@ -103,11 +112,35 @@ async function main() {
   assert(modInfo.includes("poster=poster.png"));
   assert(fs.existsSync(path.join(pack.root, "42/poster.png")));
   assert(fs.existsSync(path.join(pack.root, "preview.png")));
+  const metadataPath = path.join(pack.root, "42/kbm-movie-pack.json");
+  const originalMetadata = await fsp.readFile(metadataPath);
+  await fsp.writeFile(metadataPath, originalMetadata.toString().replace("kbm-kbm-testmovies", "invalid-pack-id"));
+  await assert.rejects(stagePackForWorkshop(pack.modId), /generated movie pack/);
+  await fsp.writeFile(metadataPath, originalMetadata);
+  const injectedLua = path.join(pack.root, "42/media/lua/client/Unexpected.lua");
+  await fsp.mkdir(path.dirname(injectedLua), { recursive: true });
+  await fsp.writeFile(injectedLua, "error('unexpected script')\n");
+  await assert.rejects(stagePackForWorkshop(pack.modId), /unexpected folder|unexpected file/);
+  await fsp.rm(injectedLua);
+  await fsp.rmdir(path.dirname(injectedLua));
+  const registerPath = path.join(pack.root, "42/media/lua/shared/KBM_TestMovies_Movies/Register.lua");
+  const originalRegister = await fsp.readFile(registerPath);
+  await fsp.rm(registerPath);
+  try {
+    await fsp.symlink(source, registerPath, "file");
+    await assert.rejects(stagePackForWorkshop(pack.modId), /link/);
+    await fsp.rm(registerPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EPERM") throw error;
+  } finally { await fsp.writeFile(registerPath, originalRegister); }
+  await fsp.writeFile(registerPath, "error('modified generated script')\n");
   const staged = await stagePackForWorkshop(pack.modId);
   assert.equal(staged.root, path.join(testRoot, "Workshop", pack.modId));
   assert.equal(staged.previewFromTemplate, false);
   assert(fs.existsSync(path.join(staged.root, "preview.png")));
   assert(fs.existsSync(path.join(staged.root, "Contents/mods", pack.modId, "42/media/video/KBM_TestMovies_Movies", `${packEntry.id}.mp4`)));
+  const stagedRegister = await fsp.readFile(path.join(staged.root, "Contents/mods", pack.modId, "42/media/lua/shared/KBM_TestMovies_Movies/Register.lua"), "utf8");
+  assert(!stagedRegister.includes("modified generated script"));
   const workshopTxt = path.join(staged.root, "workshop.txt");
   assert((await fsp.readFile(workshopTxt, "utf8")).includes("visibility=private"));
   await fsp.appendFile(workshopTxt, "id=123456789\n");

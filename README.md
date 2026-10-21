@@ -8,7 +8,7 @@ Turn your own videos into VHS tapes for **KnoxBox Television and VHS** on Projec
 
 - Project Zomboid Build 42 with **KnoxBox Media Framework** (`KBM_Core`) and **KnoxBox Television and VHS** (`KBM_TVVHS`) installed, either locally or through Steam Workshop. The converter needs to find the `KBM_TVVHS` folder even when you create a separate movie pack.
 - Windows and a working FFmpeg executable. The Windows release package includes FFmpeg; a source checkout does not.
-- Enough free disk space for the original video during conversion and the converted video and audio afterward.
+- Enough free disk space for the upload copy, temporary conversion files, and finished movie. The converter checks available space before uploading, encoding, and installing, keeps a 1 GiB reserve, and stops encoding if the drive approaches that reserve.
 
 **Using a packaged release:** Download the Windows release ZIP from the [GitHub Releases page](https://github.com/onlyloud-tech/Knoxbox-Media-Converter/releases), extract it, and run `Knoxbox-Media-Converter-<version>.exe`. The portable executable includes the app runtime and FFmpeg, so you do not need to install Node.js or rebuild the source. Keep the included `LICENSE`, `THIRD-PARTY-NOTICES.md`, and FFmpeg license with the executable. Check that the app shows **FFmpeg ready** before converting.
 
@@ -49,13 +49,13 @@ npm.cmd run check
 npm.cmd run build
 ```
 
-The source repository does not contain FFmpeg. Obtain a Windows FFmpeg build from the links on the [FFmpeg download page](https://ffmpeg.org/download.html) with the `libx264` and `libvorbis` encoders, then put its executable at `vendor\ffmpeg\ffmpeg.exe`. The converter looks there when run from this checkout. To run the built web app locally:
+The source repository does not contain FFmpeg. Obtain a Windows FFmpeg build from the links on the [FFmpeg download page](https://ffmpeg.org/download.html) with the `libx264` and `libvorbis` encoders, then put its executable at `vendor\ffmpeg\ffmpeg.exe`. To run the browser development server locally:
 
 ```powershell
-npm.cmd run start
+npm.cmd run dev
 ```
 
-Open `http://127.0.0.1:48721` in your browser. You can also run `npm.cmd run dev` during development; the same local FFmpeg path is needed for conversions.
+Open `http://127.0.0.1:48721` in your browser. Use this development server only on a trusted computer. The packaged app uses an Electron session token for its API; starting its production server without Electron is intentionally unsupported.
 
 To make the portable Windows executable, run:
 
@@ -63,7 +63,7 @@ To make the portable Windows executable, run:
 npm.cmd run package:win
 ```
 
-The configured output is `dist\Knoxbox-Media-Converter-0.3.5.exe` for this version. Packaging embeds the Electron runtime, FFmpeg, this license, and third-party notices, so users of a correctly packaged executable do not need Node.js or a separate FFmpeg installation. Official release ZIPs also include the license texts and FFmpeg source information.
+The configured output is `dist\Knoxbox-Media-Converter-0.3.6.exe` for this version. Packaging embeds the Electron runtime, FFmpeg, this license, and third-party notices, so users of a correctly packaged executable do not need Node.js or a separate FFmpeg installation. Official release ZIPs also include the license texts and FFmpeg source information.
 
 For the integration test, set the FFmpeg path explicitly:
 
